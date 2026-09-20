@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using Database;
 
 namespace Backend.Services.Code;
 
@@ -11,6 +13,7 @@ public static class RunService
 
     public record RunRequest
     {
+        public int SnippetId { get; init; }
         public required string SourceCode { get; init; }
     }
 
@@ -35,8 +38,14 @@ public static class RunService
         public CouldNotCompileException(string message, Exception inner) : base(message, inner) {}
     }
 
-    public static IResult RunCode([FromBody] RunRequest request)
+    public async static Task<IResult> RunCode([FromBody] RunRequest request, AppDbContext dbContext)
     {
+        var snippetExists = await dbContext.Snippets.AnyAsync(s => s.Id == request.SnippetId);
+        if (!snippetExists)
+        {
+            return Results.BadRequest($"Invalid submission: Snippet ID {request.SnippetId} does not exist.");
+        }
+
         try
         {
             Compile(request);
@@ -57,9 +66,20 @@ public static class RunService
         try
         {
             var runResult = Run(request);
+
+            var newSubmission = new Submission
+            {
+                SnippetId = request.SnippetId,
+                SourceCode = request.SourceCode,
+                Runtime = runResult.Runtime
+            };
+
+            dbContext.Submissions.Add(newSubmission);
+            await dbContext.SaveChangesAsync();
+
             result = Results.Ok(new RunResponse
             {
-                Runtime = runResult.Stopwatch.Elapsed.TotalMilliseconds,
+                Runtime = runResult.Runtime,
                 StandardOutput = runResult.StandardOutput,
                 StandardError = runResult.StandardError,
             });
@@ -105,14 +125,8 @@ public static class RunService
         }
     }
 
-    private record RunResult
-    {
-        public required Stopwatch Stopwatch { get; init; }
-        public required string StandardOutput { get; init; }
-        public required string StandardError { get; init; }
-    }
 
-    private static RunResult Run(RunRequest request)
+    private static RunResponse Run(RunRequest request)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -138,9 +152,9 @@ public static class RunService
         process.WaitForExit();
         stopwatch.Stop();
 
-        return new RunResult
+        return new RunResponse
         {
-            Stopwatch = stopwatch,
+            Runtime = stopwatch.Elapsed.TotalMilliseconds,
             StandardOutput = outputTask.Result,
             StandardError = errorTask.Result
         };

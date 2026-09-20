@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Backend.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,9 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
         );
 });
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<Database.AppDbContext>(options => options.UseNpgsql(connectionString));
 
 var app = builder.Build();
 
