@@ -24,10 +24,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseHttpsRedirection();
 
 app.UseCors("AllowReactApp");
 
 app.MapCodeEndpoints();
+
+app.MapFallbackToFile("index.html");
 
 app.Run();

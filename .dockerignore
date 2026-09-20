@@ -1,0 +1,11 @@
+# Ignore node_modules for any frontend folders
+**/node_modules
+npm-debug.log
+
+# Ignore .NET build folders
+**/bin
+**/obj
+
+# Ignore local frontend build output
+**/dist
+**/build

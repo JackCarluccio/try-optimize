@@ -4,7 +4,7 @@ function App() {
   const [sourceCode, setSourceCode] = useState('');
 
   const sendToServer = async () => {
-    let response = await fetch('http://localhost:5226/api/code/run', {
+    let response = await fetch('/api/code/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
